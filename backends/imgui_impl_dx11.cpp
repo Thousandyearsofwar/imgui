@@ -283,7 +283,7 @@ void ImGui_ImplDX11_RenderDrawData(ImDrawData* draw_data)
 
     // Setup render state structure (for callbacks and custom texture bindings)
     ImGuiPlatformIO& platform_io = ImGui::GetPlatformIO();
-    ImGui_ImplDX11_RenderState render_state;
+    ImGui_ImplDX11_RenderState render_state = {};
     render_state.Device = bd->pd3dDevice;
     render_state.DeviceContext = bd->pd3dDeviceContext;
     render_state.VertexConstantBuffer = bd->pVertexConstantBuffer;
@@ -391,12 +391,19 @@ void ImGui_ImplDX11_UpdateTexture(ImTextureData* tex)
         desc.Usage = D3D11_USAGE_DEFAULT;
         desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
         desc.CPUAccessFlags = 0;
-        D3D11_SUBRESOURCE_DATA subResource;
+        D3D11_SUBRESOURCE_DATA subResource = {};
         subResource.pSysMem = pixels;
         subResource.SysMemPitch = desc.Width * 4;
         subResource.SysMemSlicePitch = 0;
-        bd->pd3dDevice->CreateTexture2D(&desc, &subResource, &backend_tex->pTexture);
-        IM_ASSERT(backend_tex->pTexture != nullptr && "Backend failed to create texture!");
+        HRESULT hr = bd->pd3dDevice->CreateTexture2D(&desc, &subResource, &backend_tex->pTexture);
+        if (FAILED(hr) || backend_tex->pTexture == nullptr)
+        {
+            IM_ASSERT(0 && "Backend failed to create texture!");
+            IM_DELETE(backend_tex);
+            tex->SetTexID(ImTextureID_Invalid);
+            tex->SetStatus(ImTextureStatus_Destroyed); // Backend-initiated destroy: ImGui will re-request creation next frame.
+            return;
+        }
 
         // Create texture view
         D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
@@ -405,8 +412,16 @@ void ImGui_ImplDX11_UpdateTexture(ImTextureData* tex)
         srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
         srvDesc.Texture2D.MipLevels = desc.MipLevels;
         srvDesc.Texture2D.MostDetailedMip = 0;
-        bd->pd3dDevice->CreateShaderResourceView(backend_tex->pTexture, &srvDesc, &backend_tex->pTextureView);
-        IM_ASSERT(backend_tex->pTextureView != nullptr && "Backend failed to create texture!");
+        hr = bd->pd3dDevice->CreateShaderResourceView(backend_tex->pTexture, &srvDesc, &backend_tex->pTextureView);
+        if (FAILED(hr) || backend_tex->pTextureView == nullptr)
+        {
+            IM_ASSERT(0 && "Backend failed to create texture view!");
+            backend_tex->pTexture->Release();
+            IM_DELETE(backend_tex);
+            tex->SetTexID(ImTextureID_Invalid);
+            tex->SetStatus(ImTextureStatus_Destroyed); // Backend-initiated destroy: ImGui will re-request creation next frame.
+            return;
+        }
 
         // Store identifiers
         tex->SetTexID((ImTextureID)(intptr_t)backend_tex->pTextureView);

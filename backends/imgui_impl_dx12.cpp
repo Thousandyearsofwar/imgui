@@ -325,7 +325,7 @@ void ImGui_ImplDX12_RenderDrawData(ImDrawData* draw_data, ID3D12GraphicsCommandL
 
     // Setup render state structure (for callbacks and custom texture bindings)
     ImGuiPlatformIO& platform_io = ImGui::GetPlatformIO();
-    ImGui_ImplDX12_RenderState render_state;
+    ImGui_ImplDX12_RenderState render_state = {};
     render_state.Device = bd->pd3dDevice;
     render_state.CommandList = command_list;
     platform_io.Renderer_RenderState = bd->RenderState = &render_state;

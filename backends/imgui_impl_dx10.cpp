@@ -271,7 +271,7 @@ void ImGui_ImplDX10_RenderDrawData(ImDrawData* draw_data)
     ImGui_ImplDX10_SetupRenderState(draw_data, device);
     // Setup render state structure (for callbacks and custom texture bindings)
     ImGuiPlatformIO& platform_io = ImGui::GetPlatformIO();
-    ImGui_ImplDX10_RenderState render_state;
+    ImGui_ImplDX10_RenderState render_state = {};
     render_state.Device = bd->pd3dDevice;
     render_state.VertexConstantBuffer = bd->pVertexConstantBuffer;
     platform_io.Renderer_RenderState = &render_state;
@@ -377,7 +377,7 @@ void ImGui_ImplDX10_UpdateTexture(ImTextureData* tex)
         desc.BindFlags = D3D10_BIND_SHADER_RESOURCE;
         desc.CPUAccessFlags = 0;
 
-        D3D10_SUBRESOURCE_DATA subResource;
+        D3D10_SUBRESOURCE_DATA subResource = {};
         subResource.pSysMem = pixels;
         subResource.SysMemPitch = desc.Width * 4;
         subResource.SysMemSlicePitch = 0;
